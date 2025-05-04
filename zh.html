@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>直播源格式转换工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-6xl">
+        <h1 class="text-5xl font-bold mb-6 text-center">直播源格式转换工具</h1>
+        
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">M3U/TXT 文件上传</h2>
+            <form id="file-upload-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">选择文件类型:</label>
+                    <div class="mt-1">
+                        <input type="radio" name="file-type" id="m3u-radio" value="m3u" class="form-radio">
+                        <label for="m3u-radio" class="ml-2">M3U 文件</label>
+                        <input type="radio" name="file-type" id="txt-radio" value="txt" class="form-radio ml-4">
+                        <label for="txt-radio" class="ml-2">TXT 文件</label>
+                    </div>
+                </div>
+                <input type="file" id="file-input" accept=".m3u,.txt" required class="w-full p-2 border rounded">
+                <div class="flex items-center">
+                    <input type="checkbox" id="keep-groups" class="form-checkbox h-5 w-5 text-blue-600">
+                    <label for="keep-groups" class="ml-2">保留分组信息</label>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition duration-200">转换</button>
+            </form>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">转换结果展示</h2>
+            <textarea id="conversion-result" class="w-full p-2 border rounded h-40" readonly placeholder="转换结果将显示在这里"></textarea>
+            <button id="save-file-btn" class="mt-4 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition duration-200" style="display: none;">保存文件</button>
+        </div>
+    </div>
