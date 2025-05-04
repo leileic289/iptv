@@ -1,0 +1,106 @@
+name: Deploy Jekyll to Pages (Hybrid Environment)
+
+on:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # 混合环境逻辑：手动触发时使用自托管Runner，自动触发用GitHub Runner
+    runs-on: ${{ 
+      (github.event_name == 'workflow_dispatch' && 'self-hosted') || 
+      'ubuntu-latest' 
+    }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整提交历史（Jekyll需要）
+
+    # GitHub 托管环境配置
+    - name: Setup Ruby (GitHub Hosted)
+      if: runner.os == 'Linux' && !runner.self_hosted
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.1'
+        bundler-cache: true
+        cache-version: 0
+
+    # 自托管环境配置
+    - name: Install System Ruby (Self-Hosted)
+      if: runner.self_hosted
+      run: |
+        # 安装基础依赖
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          ruby-full \
+          ruby-bundler \
+          build-essential \
+          zlib1g-dev
+
+        # 配置本地Gem安装路径
+        mkdir -p ~/.local/share/gem
+        echo 'export GEM_HOME="$HOME/.local/share/gem"' >> ~/.bashrc
+        echo 'export PATH="$HOME/.local/share/gem/bin:$PATH"' >> ~/.bashrc
+        source ~/.bashrc
+
+        # 验证安装
+        ruby --version
+        bundle --version
+
+    - name: Cache gems (Self-Hosted)
+      if: runner.self_hosted
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.local/share/gem
+          vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-
+
+    - name: Bundle install
+      if: runner.self_hosted
+      run: |
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+
+    # 公共构建步骤
+    - name: Configure Pages
+      id: pages
+      uses: actions/configure-pages@v5
+
+    - name: Jekyll build
+      run: |
+        bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}" \
+          --trace  # 显示完整错误日志
+      env:
+        JEKYLL_ENV: production
+        LC_ALL: C.UTF-8  # 解决编码问题
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./_site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
